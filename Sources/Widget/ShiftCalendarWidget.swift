@@ -1,4 +1,5 @@
 import SwiftUI
+import WidgetKit
 
 private enum ShiftColors {
     static let ink = Color(hex: "#17263C")
