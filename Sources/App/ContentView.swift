@@ -3,6 +3,7 @@ import SwiftUI
 struct ContentView: View {
     @State private var config: TextCardConfig = SharedStore.load()
     @State private var showSaved = false
+    @State private var showShiftCalendar = false
 
     private let symbols = [
         "sparkles", "heart.fill", "flame.fill", "leaf.fill", "moon.stars.fill",
@@ -17,7 +18,36 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("预览") {
+                Section("小组件模板") {
+                    Button {
+                        showShiftCalendar = true
+                    } label: {
+                        HStack(spacing: 13) {
+                            Image(systemName: "calendar.badge.clock")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .frame(width: 42, height: 42)
+                                .background(LinearGradient(colors: [Color(hex: "#5EDBC5"), Color(hex: "#739BFF")], startPoint: .topLeading, endPoint: .bottomTrailing))
+                                .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("倒班日历")
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundStyle(.primary)
+                                Text("排班循环 · 月历预览 · 多种风格")
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(.tertiary)
+                        }
+                        .padding(.vertical, 3)
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                Section("预览 · 文字卡片") {
                     TextCardView(config: config)
                         .frame(height: 172)
                         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
@@ -95,6 +125,9 @@ struct ContentView: View {
                 }
             }
             .navigationTitle("Widget Studio")
+            .navigationDestination(isPresented: $showShiftCalendar) {
+                ShiftCalendarEditorView()
+            }
             .alert("已保存", isPresented: $showSaved) {
                 Button("好", role: .cancel) {}
             } message: {

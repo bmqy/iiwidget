@@ -22,6 +22,7 @@ targets:
     sources:
       - path: Sources/App
       - path: Sources/Shared
+      - path: Sources/Widget/ShiftCalendarWidget.swift
       - path: Resources/Assets.xcassets
     settings:
       base:
