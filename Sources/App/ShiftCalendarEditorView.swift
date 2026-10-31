@@ -1,4 +1,5 @@
 import SwiftUI
+import WidgetKit
 
 struct ShiftCalendarEditorView: View {
     @State private var config = SharedStore.loadShiftCalendar()
