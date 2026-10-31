@@ -4,58 +4,83 @@ import WidgetKit
 struct ShiftCalendarEditorView: View {
     @State private var config = SharedStore.loadShiftCalendar()
     @State private var previewDate = Date()
-    @State private var selectedPreview: PreviewSize = .medium
+    @State private var previewSize: PreviewSize = .small
     @State private var saved = false
+    @State private var showDiagnostics = false
 
-    private enum PreviewSize: String, CaseIterable, Identifiable {
-        case small = "周视图"
-        case medium = "月视图"
+    enum PreviewSize: String, CaseIterable, Identifiable {
+        case small = "小号"
+        case medium = "中号"
+        case large = "大号"
+
         var id: String { rawValue }
+
         var family: WidgetFamily {
             switch self {
             case .small: return .systemSmall
             case .medium: return .systemMedium
+            case .large: return .systemLarge
+            }
+        }
+
+        /// 与真机小组件近似的内容尺寸（pt），让预览排版与桌面一致。
+        var canvas: CGSize {
+            switch self {
+            case .small: return CGSize(width: 158, height: 158)
+            case .medium: return CGSize(width: 338, height: 158)
+            case .large: return CGSize(width: 338, height: 338)
             }
         }
     }
 
-    private var weekLabel: String {
-        let week = Calendar.current.component(.weekday, from: previewDate)
-        return ["", "周日", "周一", "周二", "周三", "周四", "周五", "周六"][week]
+    private var previewCaption: String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "zh_CN")
+        f.dateFormat = "M月d日 EEEE"
+        return f.string(from: previewDate)
     }
 
     var body: some View {
         Form {
             Section {
                 VStack(spacing: 12) {
-                    Picker("預览", selection: $selectedPreview) {
+                    Picker("预览尺寸", selection: $previewSize) {
                         ForEach(PreviewSize.allCases) { size in
                             Text(size.rawValue).tag(size)
                         }
                     }
                     .pickerStyle(.segmented)
+
                     HStack {
                         Button {
                             previewDate = Calendar.current.date(byAdding: .month, value: -1, to: previewDate) ?? previewDate
-                        } label: { Image(systemName: "chevron.left") }
+                        } label: {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 13, weight: .semibold))
+                        }
                         .buttonStyle(.plain)
                         Spacer()
-                        Text("预览：\(weekLabel)")
+                        Text(previewCaption)
                             .font(.caption.weight(.medium))
                             .foregroundStyle(.secondary)
                         Spacer()
                         Button {
                             previewDate = Calendar.current.date(byAdding: .month, value: 1, to: previewDate) ?? previewDate
-                        } label: { Image(systemName: "chevron.right") }
+                        } label: {
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 13, weight: .semibold))
+                        }
                         .buttonStyle(.plain)
                     }
-                    ShiftCalendarView(config: config, date: previewDate, familyOverride: selectedPreview.family)
-                        .frame(height: selectedPreview == .small ? 195 : 260)
-                        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-                        .shadow(color: .black.opacity(0.12), radius: 12, y: 5)
+
+                    ShiftCalendarView(config: config, date: previewDate, familyOverride: previewSize.family)
+                        .frame(width: previewSize.canvas.width, height: previewSize.canvas.height)
+                        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                        .shadow(color: .black.opacity(0.16), radius: 12, y: 6)
+                        .frame(maxWidth: .infinity)
                 }
-                .padding(.vertical, 5)
-                .listRowInsets(EdgeInsets(top: 10, leading: 12, bottom: 10, trailing: 12))
+                .padding(.vertical, 6)
+                .listRowInsets(EdgeInsets(top: 10, leading: 10, bottom: 10, trailing: 10))
             } header: {
                 Text("实时预览")
             }
@@ -108,7 +133,7 @@ struct ShiftCalendarEditorView: View {
             } header: {
                 Text("排班循环 · \(config.cycle.count) 天")
             } footer: {
-                Text("从上往下依次循环。例：白班 → 夜班 → 休息 → 休息。第一天日期代表循环中的第一个班次。长按或左滑可调整顺序与删除。")
+                Text("从上往下依次循环。例：白班 → 夜班 → 休息 → 休息。所选日期当天对应第一个班次，向前向后自动推算。点右上角「编辑」可删除或拖动排序。")
             }
 
             Section {
@@ -121,8 +146,9 @@ struct ShiftCalendarEditorView: View {
                     }
                 }
                 .pickerStyle(.segmented)
+
                 HStack(spacing: 8) {
-                    styleSwatch(.aurora, title: "极光", gradient: [Color(hex: "#1B2B49"), Color(hex: "#183B4B")])
+                    styleSwatch(.aurora, title: "极光", gradient: [Color(hex: "#1B2B49"), Color(hex: "#17384A")])
                     styleSwatch(.editorial, title: "简约", gradient: [Color(hex: "#F3F0E9"), Color(hex: "#D6CBB8")])
                     styleSwatch(.soft, title: "柔和", gradient: [Color(hex: "#F7F0FF"), Color(hex: "#EEF6FF")])
                 }
@@ -146,18 +172,38 @@ struct ShiftCalendarEditorView: View {
                     }
                     .padding(.vertical, 5)
                 }
-                .disabled(config.cycle.isEmpty || config.cycle.contains(where: { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }))
+                .disabled(config.cycle.contains(where: { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }))
             } footer: {
-                Text("保存后回到桌面，长按小组件 → 编辑小组件可选尺寸；若桌面暂未更新，稍等片刻。")
+                Text("保存后回桌面长按空白处 → 左上角「+」→ 搜索 Widget Studio → 选择「倒班日历」。")
+            }
+
+            Section {
+                Button {
+                    showDiagnostics = true
+                } label: {
+                    Label("桌面找不到小组件？点这里自查", systemImage: "stethoscope")
+                }
             }
         }
         .navigationTitle("倒班日历")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { EditButton() }
+        .sheet(isPresented: $showDiagnostics) {
+            NavigationStack {
+                DiagnosticsView()
+                    .navigationTitle("诊断")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("关闭") { showDiagnostics = false }
+                        }
+                    }
+            }
+        }
         .alert("排班已保存", isPresented: $saved) {
             Button("知道了", role: .cancel) {}
         } message: {
-            Text("小组件已刷新。班次会按循环规律自动排到过去和未来。")
+            Text("小组件已刷新。若桌面仍未更新，试试重新添加一次小组件。")
         }
     }
 
@@ -165,30 +211,33 @@ struct ShiftCalendarEditorView: View {
         Button {
             config.style = style
         } label: {
-            VStack(alignment: .leading, spacing: 8) {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
+            VStack(spacing: 6) {
+                RoundedRectangle(cornerRadius: 11, style: .continuous)
                     .fill(LinearGradient(colors: gradient, startPoint: .topLeading, endPoint: .bottomTrailing))
-                    .frame(height: 48)
+                    .frame(height: 46)
                     .overlay(alignment: .topLeading) {
-                        HStack(spacing: 4) {
-                            Circle().fill(Color(hex: "#5EDBC5")).frame(width: 8, height: 8)
-                            Circle().fill(Color(hex: "#FF8B7B")).frame(width: 8, height: 8)
-                            Circle().fill(Color(hex: "#739BFF")).frame(width: 8, height: 8)
+                        HStack(spacing: 3) {
+                            Circle().fill(Color(hex: "#5EDBC5")).frame(width: 7, height: 7)
+                            Circle().fill(Color(hex: "#FF8B7B")).frame(width: 7, height: 7)
+                            Circle().fill(Color(hex: "#739BFF")).frame(width: 7, height: 7)
                         }
-                        .padding(8)
+                        .padding(7)
                     }
                     .overlay(alignment: .bottomTrailing) {
                         if config.style == style {
                             Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 15))
+                                .font(.system(size: 14))
                                 .foregroundStyle(.white)
-                                .padding(6)
+                                .padding(5)
                         }
                     }
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 11, style: .continuous)
+                            .strokeBorder(Color.accentColor, lineWidth: config.style == style ? 2 : 0)
+                    )
                 Text(title)
                     .font(.caption.weight(config.style == style ? .bold : .medium))
                     .foregroundStyle(config.style == style ? Color.accentColor : Color.primary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .buttonStyle(.plain)
@@ -200,5 +249,57 @@ struct ShiftCalendarEditorView: View {
         SharedStore.saveShiftCalendar(normalized)
         config = normalized
         saved = true
+    }
+}
+
+/// 自查用：确认扩展是否被系统识别、App Group 是否可用。
+struct DiagnosticsView: View {
+    private var appID: String { Bundle.main.bundleIdentifier ?? "未知" }
+
+    private var extensions: [String] {
+        let plugIns = Bundle.main.bundleURL.appendingPathComponent("PlugIns")
+        let names = (try? FileManager.default.contentsOfDirectory(atPath: plugIns.path)) ?? []
+        return names.map { name in
+            let bundlePath = plugIns.appendingPathComponent(name)
+            let bundle = Bundle(url: bundlePath)
+            let id = bundle?.bundleIdentifier ?? "读取失败"
+            return "\(name) → \(id)"
+        }
+    }
+
+    private var groupStatus: String {
+        SharedStore.isAppGroupAvailable ? "可用" : "不可用（免费 Apple ID 签名常见，配置无法同步给小组件）"
+    }
+
+    var body: some View {
+        Form {
+            Section("宿主 App") {
+                LabeledContent("Bundle ID", value: appID)
+            }
+
+            Section("内嵌小组件扩展") {
+                if extensions.isEmpty {
+                    Text("未检测到扩展，说明签名工具可能漏签了 Widget 扩展。")
+                        .foregroundStyle(.red)
+                } else {
+                    ForEach(extensions, id: \.self) { item in
+                        Text(item).font(.footnote.monospaced())
+                    }
+                }
+            }
+
+            Section("App Group") {
+                Text(groupStatus).font(.footnote)
+            }
+
+            Section("已注册模板") {
+                Text("文字卡片 / 计数器 / 倒班日历").font(.footnote)
+            }
+
+            Section {
+                Text("如果这里显示正常但桌面仍找不到「倒班日历」，通常是小部件缓存问题：\n1. 删除 App 重新签名安装\n2. 重启 iPhone\n3. 桌面长按空白 → 左上角「+」→ 搜索 Widget Studio")
+                    .font(.footnote)
+            }
+        }
     }
 }

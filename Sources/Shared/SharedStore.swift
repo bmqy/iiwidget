@@ -97,6 +97,11 @@ enum SharedStore {
         UserDefaults(suiteName: appGroupID) ?? .standard
     }
 
+    /// App Group 容器是否真的可用（免费 Apple ID 签名通常拿不到）。
+    static var isAppGroupAvailable: Bool {
+        FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupID) != nil
+    }
+
     static func load() -> TextCardConfig {
         guard let data = defaults.data(forKey: textCardKey),
               let config = try? JSONDecoder().decode(TextCardConfig.self, from: data)
