@@ -1,0 +1,86 @@
+name: WidgetStudio
+options:
+  bundleIdPrefix: com.widgetstudio
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: ""
+    ENABLE_USER_SCRIPT_SANDBOXING: NO
+
+targets:
+  WidgetStudio:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources/App
+      - path: Sources/Shared
+      - path: Resources/Assets.xcassets
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.widgetstudio.app
+        PRODUCT_NAME: WidgetStudio
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        TARGETED_DEVICE_FAMILY: "1"
+    info:
+      path: Support/App-Info.plist
+      properties:
+        CFBundleDisplayName: Widget Studio
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        ITSAppUsesNonExemptEncryption: false
+    entitlements:
+      path: Support/App.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.widgetstudio.shared
+    dependencies:
+      - target: WidgetStudioWidget
+        embed: true
+
+  WidgetStudioWidget:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: Sources/Widget
+      - path: Sources/Shared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.widgetstudio.widget
+        PRODUCT_NAME: WidgetStudioWidget
+        TARGETED_DEVICE_FAMILY: "1"
+        APPLICATION_EXTENSION_API_ONLY: YES
+        SKIP_INSTALL: YES
+    info:
+      path: Support/Widget-Info.plist
+      properties:
+        CFBundleDisplayName: Widget Studio
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    entitlements:
+      path: Support/Widget.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.widgetstudio.shared
+
+schemes:
+  WidgetStudio:
+    build:
+      targets:
+        WidgetStudio: all
+    run:
+      config: Debug
+    archive:
+      config: Release

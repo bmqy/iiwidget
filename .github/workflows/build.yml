@@ -1,0 +1,51 @@
+name: build-ipa
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Archive (unsigned)
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project WidgetStudio.xcodeproj \
+            -scheme WidgetStudio \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -archivePath build/WidgetStudio.xcarchive \
+            archive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            ENABLE_BITCODE=NO
+
+      - name: Package IPA
+        run: |
+          set -euo pipefail
+          mkdir -p build/Payload
+          cp -R build/WidgetStudio.xcarchive/Products/Applications/WidgetStudio.app build/Payload/
+          cd build
+          zip -qry WidgetStudio-unsigned.ipa Payload
+          ls -lh WidgetStudio-unsigned.ipa
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: WidgetStudio-unsigned-ipa
+          path: build/WidgetStudio-unsigned.ipa
+          retention-days: 30
