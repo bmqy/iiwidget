@@ -207,12 +207,20 @@ enum StudioResolver {
     }
 
     static func shiftConfig(for intent: StudioIntent) -> ShiftCalendarConfig {
-        var config = SharedStore.loadShiftCalendar()
-        config.style = intent.calendarStyle.value
-        if intent.rotation != .appCustom {
+        // 关键：小组件进程里只有在 App Group 真的可用时才去读共享容器，
+        // 否则 UserDefaults(suiteName:) 访问未授权容器会被沙盒直接杀掉扩展。
+        var config: ShiftCalendarConfig
+        if intent.rotation == .appCustom, SharedStore.isAppGroupAvailable {
+            config = SharedStore.loadShiftCalendar()
+            if config.cycle.isEmpty {
+                config.cycle = StudioRotation.twoOnTwoOff.cycle
+            }
+        } else {
+            config = ShiftCalendarConfig()
             config.cycle = intent.rotation.cycle
             config.anchorDate = stableAnchor()
         }
+        config.style = intent.calendarStyle.value
         return config
     }
 

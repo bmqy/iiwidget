@@ -4,62 +4,8 @@ import WidgetKit
 struct ShiftCalendarEditorView: View {
     @State private var config = SharedStore.loadShiftCalendar()
     @State private var previewDate = Date()
-    @State private var previewSize: PreviewSize = .small
     @State private var saved = false
     @State private var showDiagnostics = false
-
-    enum PreviewSize: String, CaseIterable, Identifiable {
-        case small = "小号"
-        case medium = "中号"
-        case large = "大号"
-
-        var id: String { rawValue }
-
-        var family: WidgetFamily {
-            switch self {
-            case .small: return .systemSmall
-            case .medium: return .systemMedium
-            case .large: return .systemLarge
-            }
-        }
-
-        /// 与真机小组件近似的内容尺寸（pt），让预览排版与桌面一致。
-        var canvas: CGSize {
-            switch self {
-            case .small: return CGSize(width: 158, height: 158)
-            case .medium: return CGSize(width: 338, height: 158)
-            case .large: return CGSize(width: 338, height: 338)
-            }
-        }
-    }
-
-    private var sizeSelector: some View {
-        HStack(spacing: 3) {
-            ForEach(PreviewSize.allCases) { size in
-                Button {
-                    previewSize = size
-                } label: {
-                    Text(size.rawValue)
-                        .font(.system(size: 13, weight: previewSize == size ? .semibold : .regular))
-                        .foregroundStyle(previewSize == size ? Color.primary : Color.secondary)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 7)
-                        .contentShape(Rectangle())
-                        .background {
-                            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .fill(previewSize == size ? Color(.secondarySystemGroupedBackground) : Color.clear)
-                                .shadow(color: .black.opacity(previewSize == size ? 0.1 : 0), radius: 2, y: 1)
-                        }
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(3)
-        .background(
-            RoundedRectangle(cornerRadius: 11, style: .continuous)
-                .fill(Color.primary.opacity(0.07))
-        )
-    }
 
     private var previewCaption: String {
         let f = DateFormatter()
@@ -71,9 +17,7 @@ struct ShiftCalendarEditorView: View {
     var body: some View {
         Form {
             Section {
-                VStack(spacing: 12) {
-                    sizeSelector
-
+                VStack(spacing: 18) {
                     HStack {
                         Button {
                             previewDate = Calendar.current.date(byAdding: .month, value: -1, to: previewDate) ?? previewDate
@@ -96,17 +40,14 @@ struct ShiftCalendarEditorView: View {
                         .buttonStyle(.plain)
                     }
 
-                    ShiftCalendarView(config: config, date: previewDate, familyOverride: previewSize.family)
-                        .frame(width: previewSize.canvas.width, height: previewSize.canvas.height)
-                        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                        .shadow(color: .black.opacity(0.16), radius: 12, y: 6)
-                        .frame(maxWidth: .infinity)
-                        .id(previewSize)
+                    previewBlock("小号 · 今日与本周", family: .systemSmall, canvas: CGSize(width: 158, height: 158))
+                    previewBlock("中号 · 一周班次", family: .systemMedium, canvas: CGSize(width: 338, height: 158))
+                    previewBlock("大号 · 整月日历", family: .systemLarge, canvas: CGSize(width: 338, height: 338))
                 }
                 .padding(.vertical, 6)
                 .listRowInsets(EdgeInsets(top: 10, leading: 10, bottom: 10, trailing: 10))
             } header: {
-                Text("实时预览")
+                Text("预览 · 三种尺寸")
             }
 
             Section {
@@ -228,6 +169,19 @@ struct ShiftCalendarEditorView: View {
             Button("知道了", role: .cancel) {}
         } message: {
             Text("小组件已刷新。若桌面仍未更新，试试重新添加一次小组件。")
+        }
+    }
+
+    private func previewBlock(_ title: String, family: WidgetFamily, canvas: CGSize) -> some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+            ShiftCalendarView(config: config, date: previewDate, familyOverride: family)
+                .frame(width: canvas.width, height: canvas.height)
+                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                .shadow(color: .black.opacity(0.16), radius: 12, y: 6)
+                .frame(maxWidth: .infinity)
         }
     }
 

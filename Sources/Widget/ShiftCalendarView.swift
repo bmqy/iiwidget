@@ -58,6 +58,14 @@ struct ShiftCalendarView: View {
         return (0..<7).compactMap { cal.date(byAdding: .day, value: $0, to: start) }
     }
 
+    private var monthRows: [[Date?]] {
+        let days = monthDays
+        guard !days.isEmpty else { return [] }
+        return stride(from: 0, to: days.count, by: 7).map { start in
+            Array(days[start..<min(start + 7, days.count)])
+        }
+    }
+
     private let weekdaySymbols = ["一", "二", "三", "四", "五", "六", "日"]
 
     private var monthTitle: String {
@@ -272,12 +280,13 @@ struct ShiftCalendarView: View {
                 }
             }
 
-            LazyVGrid(
-                columns: Array(repeating: GridItem(.flexible(), spacing: 3), count: 7),
-                spacing: 4
-            ) {
-                ForEach(Array(monthDays.enumerated()), id: \.offset) { _, day in
-                    monthCell(day)
+            VStack(spacing: 4) {
+                ForEach(Array(monthRows.enumerated()), id: \.offset) { _, row in
+                    HStack(spacing: 3) {
+                        ForEach(Array(row.enumerated()), id: \.offset) { _, day in
+                            monthCell(day)
+                        }
+                    }
                 }
             }
 

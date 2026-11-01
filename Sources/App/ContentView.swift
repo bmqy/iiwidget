@@ -123,6 +123,18 @@ struct ContentView: View {
                 } footer: {
                     Text("保存后回到桌面：长按空白处 → 左上角「+」→ 搜索 Widget Studio → 选尺寸添加；再长按该小组件 →「编辑小组件」→ 模板选「文字卡片」、文字来源选「用 App 里编辑的」。需要 App Group 可用（付费开发者账号签名），否则请直接在编辑小组件里填写文字。")
                 }
+                Section {
+                    HStack {
+                        Text("版本")
+                        Spacer()
+                        Text("v" + (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"))
+                        Text("build " + (Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"))
+                    }
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                } footer: {
+                    Text("若这里的版本不是最新的，说明装的是旧包，请重新签名安装。")
+                }
             }
             .navigationTitle("Widget Studio")
             .navigationDestination(isPresented: $showShiftCalendar) {
