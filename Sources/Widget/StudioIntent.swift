@@ -3,7 +3,7 @@ import Foundation
 
 // MARK: - 模板
 
-enum StudioTemplate: String, AppEnum, CaseIterable {
+enum StudioTemplate: String, AppEnum, CaseIterable, Codable {
     case textCard
     case counter
     case shiftCalendar
@@ -111,7 +111,7 @@ enum StudioRotation: String, AppEnum, CaseIterable {
 
     static var typeDisplayRepresentation: TypeDisplayRepresentation = "排班制"
     static var caseDisplayRepresentations: [StudioRotation: DisplayRepresentation] = [
-        .appCustom: "App 内自定义",
+        .appCustom: "自定义（见下方填写）",
         .twoOnTwoOff: "上二休二",
         .oneOnOneOff: "做一休一",
         .twoShift: "两班倒（白/夜）",
@@ -131,7 +131,7 @@ enum StudioRotation: String, AppEnum, CaseIterable {
     }
 }
 
-enum StudioCalendarStyle: String, AppEnum, CaseIterable {
+enum StudioCalendarStyle: String, AppEnum, CaseIterable, Codable {
     case aurora
     case editorial
     case soft
@@ -184,6 +184,12 @@ struct StudioIntent: WidgetConfigurationIntent {
     @Parameter(title: "日历风格", default: .aurora)
     var calendarStyle: StudioCalendarStyle
 
+    @Parameter(title: "自定义班次", default: "")
+    var customCycle: String
+
+    @Parameter(title: "循环起始日", default: "")
+    var anchorText: String
+
     @Parameter(title: "主题色", default: .blue)
     var theme: StudioTheme
 
@@ -206,22 +212,42 @@ enum StudioResolver {
         return config
     }
 
+    /// 排班信息全部来自小组件自身参数，不依赖 App Group —— TrollStore / 免费签名同样可用。
     static func shiftConfig(for intent: StudioIntent) -> ShiftCalendarConfig {
-        // 关键：小组件进程里只有在 App Group 真的可用时才去读共享容器，
-        // 否则 UserDefaults(suiteName:) 访问未授权容器会被沙盒直接杀掉扩展。
-        var config: ShiftCalendarConfig
-        if intent.rotation == .appCustom, SharedStore.isAppGroupAvailable {
-            config = SharedStore.loadShiftCalendar()
-            if config.cycle.isEmpty {
-                config.cycle = StudioRotation.twoOnTwoOff.cycle
-            }
+        var config = ShiftCalendarConfig()
+        let parsed = parseCycle(intent.customCycle)
+        if intent.rotation == .appCustom, !parsed.isEmpty {
+            config.cycle = parsed
         } else {
-            config = ShiftCalendarConfig()
-            config.cycle = intent.rotation.cycle
-            config.anchorDate = stableAnchor()
+            config.cycle = (intent.rotation == .appCustom ? StudioRotation.twoOnTwoOff : intent.rotation).cycle
         }
+        config.anchorDate = parseAnchor(intent.anchorText) ?? stableAnchor()
         config.style = intent.calendarStyle.value
         return config
+    }
+
+    static func parseCycle(_ raw: String) -> [String] {
+        let separators = CharacterSet(charactersIn: "、,，/|;；\n ")
+        let parts = raw
+            .components(separatedBy: separators)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        return Array(parts.prefix(14)).map { String($0.prefix(6)) }
+    }
+
+    static func parseAnchor(_ raw: String) -> Date? {
+        let text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return nil }
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone.current
+        for pattern in ["yyyy-MM-dd", "yyyy/M/d", "yyyyMMdd"] {
+            formatter.dateFormat = pattern
+            if let date = formatter.date(from: text) {
+                return Calendar.current.startOfDay(for: date)
+            }
+        }
+        return nil
     }
 
     /// 没有 App Group 时，用扩展自己的存储记住一个固定起点，保证「今天上什么班」不会天天漂移。

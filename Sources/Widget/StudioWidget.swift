@@ -38,21 +38,49 @@ struct CounterCardView: View {
     }
 }
 
-// MARK: - 统一入口视图
+// MARK: - Timeline（条目只存纯数据，不把 AppIntent 塞进 TimelineEntry）
+
+struct StudioEntry: TimelineEntry {
+    let date: Date
+    let family: WidgetFamily
+    let template: StudioTemplate
+    let textConfig: TextCardConfig
+    let counterTitle: String
+    let counterValue: Int
+    let counterUnit: String
+    let themeHex: String
+    let shiftConfig: ShiftCalendarConfig
+
+    init(date: Date, intent: StudioIntent, family: WidgetFamily) {
+        self.date = date
+        self.family = family
+        self.template = intent.template
+        self.textConfig = StudioResolver.textConfig(for: intent)
+        self.counterTitle = intent.title
+        self.counterValue = intent.count
+        self.counterUnit = intent.unit
+        self.themeHex = intent.theme.hex
+        self.shiftConfig = StudioResolver.shiftConfig(for: intent)
+    }
+
+    static var fallback: StudioEntry {
+        StudioEntry(date: Date(), intent: StudioIntent(), family: .systemSmall)
+    }
+}
 
 struct StudioEntryView: View {
     let entry: StudioEntry
 
     var body: some View {
-        switch entry.intent.template {
+        switch entry.template {
         case .textCard:
             TextCardView(config: entry.textConfig)
         case .counter:
             CounterCardView(
-                title: entry.intent.title,
-                value: entry.intent.count,
-                unit: entry.intent.unit,
-                hex: entry.intent.theme.hex,
+                title: entry.counterTitle,
+                value: entry.counterValue,
+                unit: entry.counterUnit,
+                hex: entry.themeHex,
                 family: entry.family
             )
         case .shiftCalendar:
@@ -61,27 +89,9 @@ struct StudioEntryView: View {
     }
 }
 
-// MARK: - Timeline
-
-struct StudioEntry: TimelineEntry {
-    let date: Date
-    let intent: StudioIntent
-    let family: WidgetFamily
-    let textConfig: TextCardConfig
-    let shiftConfig: ShiftCalendarConfig
-
-    init(date: Date, intent: StudioIntent, family: WidgetFamily) {
-        self.date = date
-        self.intent = intent
-        self.family = family
-        self.textConfig = StudioResolver.textConfig(for: intent)
-        self.shiftConfig = StudioResolver.shiftConfig(for: intent)
-    }
-}
-
 struct StudioProvider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> StudioEntry {
-        StudioEntry(date: Date(), intent: StudioIntent(), family: .systemMedium)
+        StudioEntry.fallback
     }
 
     func snapshot(for configuration: StudioIntent, in context: Context) async -> StudioEntry {
