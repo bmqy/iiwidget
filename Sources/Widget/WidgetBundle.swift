@@ -5,5 +5,6 @@ import SwiftUI
 struct WidgetStudioWidgetBundle: WidgetBundle {
     var body: some Widget {
         StudioWidget()
+        StudioProbeWidget()
     }
 }
