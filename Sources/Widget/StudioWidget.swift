@@ -67,11 +67,12 @@ struct StudioEntry: TimelineEntry {
 
 struct StudioProvider: TimelineProvider {
     func placeholder(in context: Context) -> StudioEntry {
-        StudioEntry(date: Date(), family: .systemMedium)
+        // 必须用 context.family，否则组件图库里大号预览会画成中号布局。
+        StudioEntry(date: Date(), family: context.family)
     }
 
     func getSnapshot(in context: Context, completion: @escaping (StudioEntry) -> Void) {
-        completion(StudioEntry(date: Date(), family: .systemMedium))
+        completion(StudioEntry(date: Date(), family: context.family))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<StudioEntry>) -> Void) {

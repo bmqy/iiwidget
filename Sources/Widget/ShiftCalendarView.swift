@@ -58,6 +58,20 @@ struct ShiftCalendarView: View {
         return (0..<7).compactMap { cal.date(byAdding: .day, value: $0, to: start) }
     }
 
+    /// 固定 6 行 42 天：包含前后月的日期，当月为主，前后月淡化显示。
+    private var gridDays: [Date] {
+        guard let firstOfMonth = cal.dateInterval(of: .month, for: date)?.start else { return [] }
+        let lead = (cal.component(.weekday, from: firstOfMonth) - cal.firstWeekday + 7) % 7
+        let start = cal.date(byAdding: .day, value: -lead, to: firstOfMonth) ?? firstOfMonth
+        return (0..<42).compactMap { cal.date(byAdding: .day, value: $0, to: start) }
+    }
+
+    private var gridRows: [[Date]] {
+        let days = gridDays
+        guard !days.isEmpty else { return [] }
+        return stride(from: 0, to: days.count, by: 7).map { Array(days[$0..<min($0 + 7, days.count)]) }
+    }
+
     private var monthRows: [[Date?]] {
         let days = monthDays
         guard !days.isEmpty else { return [] }
@@ -252,11 +266,11 @@ struct ShiftCalendarView: View {
     // MARK: 大尺寸 —— 整月日历
 
     private var largeView: some View {
-        VStack(alignment: .leading, spacing: 9) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(monthTitle)
-                        .font(.system(size: 19, weight: .bold, design: .rounded))
+                        .font(.system(size: 22, weight: .bold, design: .rounded))
                         .foregroundStyle(primaryText)
                     Text(todayTitle)
                         .font(.system(size: 10, weight: .medium))
@@ -274,25 +288,25 @@ struct ShiftCalendarView: View {
             HStack(spacing: 2) {
                 ForEach(Array(weekdaySymbols.enumerated()), id: \.offset) { _, symbol in
                     Text(symbol)
-                        .font(.system(size: 9, weight: .semibold))
+                        .font(.system(size: 9.5, weight: .semibold))
                         .foregroundStyle(secondaryText)
                         .frame(maxWidth: .infinity)
                 }
             }
 
             VStack(spacing: 4) {
-                ForEach(Array(monthRows.enumerated()), id: \.offset) { _, row in
+                ForEach(Array(gridRows.enumerated()), id: \.offset) { _, row in
                     HStack(spacing: 3) {
                         ForEach(Array(row.enumerated()), id: \.offset) { _, day in
-                            monthCell(day)
+                            monthCell(day, inMonth: cal.isDate(day, equalTo: monthStart, toGranularity: .month))
                         }
                     }
+                    .frame(maxHeight: .infinity)
                 }
             }
+            .frame(maxHeight: .infinity)
 
-            Spacer(minLength: 0)
-
-            HStack(spacing: 9) {
+            HStack(spacing: 10) {
                 ForEach(Array(config.cycle.enumerated()), id: \.offset) { _, shift in
                     HStack(spacing: 3.5) {
                         Circle().fill(shiftColor(shift)).frame(width: 6, height: 6)
@@ -352,29 +366,27 @@ struct ShiftCalendarView: View {
     }
 
     @ViewBuilder
-    private func monthCell(_ day: Date?) -> some View {
-        if let day {
-            let shift = config.shift(on: day, calendar: cal)
-            let today = cal.isDate(day, inSameDayAs: date)
-            let color = shiftColor(shift)
-            VStack(spacing: 1) {
-                Text("\(cal.component(.day, from: day))")
-                    .font(.system(size: 10, weight: today ? .bold : .medium, design: .rounded))
-                    .foregroundStyle(today ? (isDark ? Color(hex: "#0F2A34") : .white) : primaryText)
-                Text(config.isRest(shift) ? "休" : String(shift.prefix(3)))
-                    .font(.system(size: 6.5, weight: .semibold))
-                    .foregroundStyle(today ? (isDark ? Color(hex: "#0F2A34") : .white) : (config.isRest(shift) ? secondaryText : color))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.5)
-            }
-            .frame(maxWidth: .infinity)
-            .frame(height: 24)
-            .background {
-                RoundedRectangle(cornerRadius: 7, style: .continuous)
-                    .fill(cellFill(shift: shift, today: today, color: color))
-            }
-        } else {
-            Color.clear.frame(maxWidth: .infinity).frame(height: 24)
+    private func monthCell(_ day: Date, inMonth: Bool) -> some View {
+        let shift = config.shift(on: day, calendar: cal)
+        let today = cal.isDate(day, inSameDayAs: date)
+        let color = shiftColor(shift)
+        let alpha: Double = inMonth ? 1 : 0.35
+        return VStack(spacing: 2) {
+            Text("\(cal.component(.day, from: day))")
+                .font(.system(size: 13, weight: today ? .bold : .semibold, design: .rounded))
+                .foregroundStyle(today ? (isDark ? Color(hex: "#0F2A34") : .white) : primaryText.opacity(alpha))
+            Text(config.isRest(shift) ? "休" : String(shift.prefix(3)))
+                .font(.system(size: 8, weight: .semibold))
+                .foregroundStyle(today
+                                 ? (isDark ? Color(hex: "#0F2A34") : .white)
+                                 : (config.isRest(shift) ? secondaryText.opacity(alpha) : color.opacity(alpha)))
+                .lineLimit(1)
+                .minimumScaleFactor(0.55)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background {
+            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                .fill(cellFill(shift: shift, today: today, color: color).opacity(inMonth ? 1 : 0.4))
         }
     }
 
