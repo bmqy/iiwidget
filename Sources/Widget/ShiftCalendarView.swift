@@ -117,6 +117,8 @@ struct ShiftCalendarView: View {
     }
 
     private var todayShift: String { config.shift(on: date, calendar: cal) }
+
+    private var accentToday: Color { shiftColor(todayShift) }
     private var isRestToday: Bool { config.isRest(todayShift) }
 
     // MARK: 配色
