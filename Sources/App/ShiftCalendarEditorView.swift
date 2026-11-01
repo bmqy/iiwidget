@@ -8,18 +8,6 @@ struct ShiftCalendarEditorView: View {
     @State private var saved = false
     @State private var showDiagnostics = false
 
-    private var cycleText: String {
-        let items = config.cycle.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
-        return items.isEmpty ? "白、夜、休、休" : items.joined(separator: "、")
-    }
-
-    private var anchorText: String {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "en_US_POSIX")
-        f.dateFormat = "yyyy-MM-dd"
-        return f.string(from: config.anchorDate)
-    }
-
     private var previewCaption: String {
         let f = DateFormatter()
         f.locale = Locale(identifier: "zh_CN")
@@ -115,30 +103,18 @@ struct ShiftCalendarEditorView: View {
             }
 
             Section {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("当前排班")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                    Text(cycleText)
-                        .font(.system(.body, design: .rounded).weight(.medium))
-                        .textSelection(.enabled)
-                    Text("起始日（该天为第一个班次）")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                    Text(anchorText)
-                        .font(.system(.body, design: .rounded).weight(.medium))
-                        .textSelection(.enabled)
-                    Button {
-                        UIPasteboard.general.string = "\(cycleText)\n\(anchorText)"
-                    } label: {
-                        Label("复制这两行", systemImage: "doc.on.doc")
-                    }
+                HStack(spacing: 8) {
+                    Image(systemName: SharedStore.isAppGroupAvailable ? "checkmark.seal.fill" : "exclamationmark.triangle.fill")
+                        .foregroundStyle(SharedStore.isAppGroupAvailable ? Color.green : Color.orange)
+                    Text(SharedStore.isAppGroupAvailable
+                         ? "共享存储正常，保存后桌面立即生效"
+                         : "共享存储不可用：桌面小组件将显示默认排班")
+                        .font(.footnote)
                 }
-                .padding(.vertical, 4)
             } header: {
-                Text("抄到小组件里")
+                Text("同步状态")
             } footer: {
-                Text("长按桌面小组件 →「编辑小组件」→ 排班制选「自定义（见下方填写）」，把上面两行分别填进「自定义班次」和「循环起始日」。这条路不依赖 App Group，TrollStore 与免费签名都能生效。")
+                Text("若显示不可用，请使用本项目 Actions 产出的 WidgetStudio-trollstore.ipa（构建时已写入 App Group 权限），或用自己的描述文件签名并保留 App Group 能力。")
             }
 
             Section {

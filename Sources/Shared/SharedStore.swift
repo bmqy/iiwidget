@@ -86,6 +86,46 @@ struct ShiftCalendarConfig: Codable, Equatable {
     }
 }
 
+// MARK: - 小组件模板
+
+enum StudioTemplate: String, CaseIterable, Codable, Identifiable {
+    case shiftCalendar
+    case textCard
+    case counter
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .shiftCalendar: return "倒班日历"
+        case .textCard: return "文字卡片"
+        case .counter: return "计数器"
+        }
+    }
+
+    var symbolName: String {
+        switch self {
+        case .shiftCalendar: return "calendar.badge.clock"
+        case .textCard: return "text.quote"
+        case .counter: return "number.circle.fill"
+        }
+    }
+}
+
+struct StudioSettings: Codable, Equatable {
+    var templateRaw: String = StudioTemplate.shiftCalendar.rawValue
+    var counterTitle: String = "已坚持"
+    var counterValue: Int = 7
+    var counterUnit: String = "天"
+
+    var template: StudioTemplate {
+        get { StudioTemplate(rawValue: templateRaw) ?? .shiftCalendar }
+        set { templateRaw = newValue.rawValue }
+    }
+
+    static let fallback = StudioSettings()
+}
+
 // MARK: - App Group 共享存储
 
 enum SharedStore {
@@ -93,6 +133,7 @@ enum SharedStore {
     static let appGroupID = "group.com.widgetstudio.shared"
     private static let textCardKey = "textcard.config.v1"
     private static let shiftCalendarKey = "shiftcalendar.config.v1"
+    private static let settingsKey = "studio.settings.v1"
 
     static var defaults: UserDefaults {
         UserDefaults(suiteName: appGroupID) ?? .standard
@@ -116,6 +157,24 @@ enum SharedStore {
         WidgetCenter.shared.reloadAllTimelines()
     }
 
+    /// 供小组件进程使用的纯默认值：不触碰共享容器，任何签名方式都安全。
+    static func safeSettings() -> StudioSettings { .fallback }
+
+    static func loadSettings() -> StudioSettings {
+        guard let data = defaults.data(forKey: settingsKey),
+              var settings = try? JSONDecoder().decode(StudioSettings.self, from: data)
+        else { return .fallback }
+        settings.counterTitle = String(settings.counterTitle.prefix(12))
+        settings.counterUnit = String(settings.counterUnit.prefix(6))
+        return settings
+    }
+
+    static func save(_ settings: StudioSettings) {
+        guard let data = try? JSONEncoder().encode(settings) else { return }
+        defaults.set(data, forKey: settingsKey)
+        WidgetCenter.shared.reloadAllTimelines()
+    }
+
     static func loadShiftCalendar() -> ShiftCalendarConfig {
         guard let data = defaults.data(forKey: shiftCalendarKey),
               var config = try? JSONDecoder().decode(ShiftCalendarConfig.self, from: data)
@@ -129,7 +188,7 @@ enum SharedStore {
         safeConfig.cycle = Self.normalizedCycle(config.cycle)
         guard let data = try? JSONEncoder().encode(safeConfig) else { return }
         defaults.set(data, forKey: shiftCalendarKey)
-        WidgetCenter.shared.reloadTimelines(ofKind: "ShiftCalendarWidget")
+        WidgetCenter.shared.reloadAllTimelines()
     }
 
     private static func normalizedCycle(_ cycle: [String]) -> [String] {

@@ -38,7 +38,7 @@ struct CounterCardView: View {
     }
 }
 
-// MARK: - Timeline（条目只存纯数据，不把 AppIntent 塞进 TimelineEntry）
+// MARK: - 数据快照
 
 struct StudioEntry: TimelineEntry {
     let date: Date
@@ -48,23 +48,41 @@ struct StudioEntry: TimelineEntry {
     let counterTitle: String
     let counterValue: Int
     let counterUnit: String
-    let themeHex: String
     let shiftConfig: ShiftCalendarConfig
 
-    init(date: Date, intent: StudioIntent, family: WidgetFamily) {
+    init(date: Date, family: WidgetFamily) {
         self.date = date
         self.family = family
-        self.template = intent.template
-        self.textConfig = StudioResolver.textConfig(for: intent)
-        self.counterTitle = intent.title
-        self.counterValue = intent.count
-        self.counterUnit = intent.unit
-        self.themeHex = intent.theme.hex
-        self.shiftConfig = StudioResolver.shiftConfig(for: intent)
+        let settings = SharedStore.loadSettings()
+        let text = SharedStore.load()
+        let shift = SharedStore.loadShiftCalendar()
+        self.template = settings.template
+        self.textConfig = text
+        self.counterTitle = settings.counterTitle
+        self.counterValue = settings.counterValue
+        self.counterUnit = settings.counterUnit
+        self.shiftConfig = shift
+    }
+}
+
+struct StudioProvider: TimelineProvider {
+    func placeholder(in context: Context) -> StudioEntry {
+        StudioEntry(date: Date(), family: .systemMedium)
     }
 
-    static var fallback: StudioEntry {
-        StudioEntry(date: Date(), intent: StudioIntent(), family: .systemSmall)
+    func getSnapshot(in context: Context, completion: @escaping (StudioEntry) -> Void) {
+        completion(StudioEntry(date: Date(), family: .systemMedium))
+    }
+
+    func getTimeline(in context: Context, completion: @escaping (Timeline<StudioEntry>) -> Void) {
+        let now = Date()
+        let calendar = Calendar.current
+        var entries = [StudioEntry(date: now, family: context.family)]
+        if let tomorrow = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: now)) {
+            entries.append(StudioEntry(date: tomorrow, family: context.family))
+        }
+        let refresh = calendar.date(byAdding: .hour, value: 3, to: now) ?? now.addingTimeInterval(10_800)
+        completion(Timeline(entries: entries, policy: .after(refresh)))
     }
 }
 
@@ -80,7 +98,7 @@ struct StudioEntryView: View {
                 title: entry.counterTitle,
                 value: entry.counterValue,
                 unit: entry.counterUnit,
-                hex: entry.themeHex,
+                hex: entry.textConfig.themeHex,
                 family: entry.family
             )
         case .shiftCalendar:
@@ -89,38 +107,18 @@ struct StudioEntryView: View {
     }
 }
 
-struct StudioProvider: AppIntentTimelineProvider {
-    func placeholder(in context: Context) -> StudioEntry {
-        StudioEntry.fallback
-    }
-
-    func snapshot(for configuration: StudioIntent, in context: Context) async -> StudioEntry {
-        StudioEntry(date: Date(), intent: configuration, family: context.family)
-    }
-
-    func timeline(for configuration: StudioIntent, in context: Context) async -> Timeline<StudioEntry> {
-        let now = Date()
-        let calendar = Calendar.current
-        var entries = [StudioEntry(date: now, intent: configuration, family: context.family)]
-        if configuration.template == .shiftCalendar,
-           let tomorrow = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: now)) {
-            entries.append(StudioEntry(date: tomorrow, intent: configuration, family: context.family))
-        }
-        let refresh = calendar.date(byAdding: .hour, value: 6, to: now) ?? now.addingTimeInterval(21_600)
-        return Timeline(entries: entries, policy: .after(refresh))
-    }
-}
-
 // MARK: - Widget
 
 struct StudioWidget: Widget {
     var body: some WidgetConfiguration {
-        AppIntentConfiguration(kind: "StudioWidget", intent: StudioIntent.self, provider: StudioProvider()) { entry in
+        // 使用 StaticConfiguration：不依赖 AppIntents，
+        // TrollStore / 免费签名 / 付费账号都能正常交付时间线。
+        StaticConfiguration(kind: "StudioWidget", provider: StudioProvider()) { entry in
             StudioEntryView(entry: entry)
                 .containerBackground(for: .widget) { Color.clear }
         }
         .configurationDisplayName("Widget Studio")
-        .description("添加后长按小组件 → 编辑小组件，可选文字卡片 / 计数器 / 倒班日历。")
+        .description("先在 App 里选好要显示的模板，再添加这个小组件。")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
         .contentMarginsDisabled()
     }

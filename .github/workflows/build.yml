@@ -34,18 +34,43 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             ENABLE_BITCODE=NO
 
-      - name: Package IPA
+      - name: Package unsigned IPA
         run: |
           set -euo pipefail
-          mkdir -p build/Payload
-          cp -R build/WidgetStudio.xcarchive/Products/Applications/WidgetStudio.app build/Payload/
-          cd build
-          zip -qry WidgetStudio-unsigned.ipa Payload
-          ls -lh WidgetStudio-unsigned.ipa
+          mkdir -p build/unsigned/Payload
+          cp -R build/WidgetStudio.xcarchive/Products/Applications/WidgetStudio.app build/unsigned/Payload/
+          cd build/unsigned
+          zip -qry ../WidgetStudio-unsigned.ipa Payload
+
+      - name: Ad-hoc sign with App Group entitlements
+        run: |
+          set -euo pipefail
+          APP=build/WidgetStudio.xcarchive/Products/Applications/WidgetStudio.app
+          codesign --force --sign - --timestamp=none \
+            --entitlements Support/Widget.entitlements \
+            "$APP/PlugIns/WidgetStudioWidget.appex"
+          codesign --force --sign - --timestamp=none \
+            --entitlements Support/App.entitlements \
+            "$APP"
+          echo "--- app signature ---"
+          codesign -dv --verbose=2 "$APP" 2>&1 | head -8 || true
+          echo "--- entitlements ---"
+          codesign -d --entitlements - "$APP" 2>/dev/null | head -20 || true
+
+      - name: Package TrollStore IPA
+        run: |
+          set -euo pipefail
+          mkdir -p build/trollstore/Payload
+          cp -R build/WidgetStudio.xcarchive/Products/Applications/WidgetStudio.app build/trollstore/Payload/
+          cd build/trollstore
+          zip -qry ../WidgetStudio-trollstore.ipa Payload
+          ls -lh ../WidgetStudio-trollstore.ipa ../WidgetStudio-unsigned.ipa
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: WidgetStudio-unsigned-ipa
-          path: build/WidgetStudio-unsigned.ipa
+          name: WidgetStudio-ipa
+          path: |
+            build/WidgetStudio-trollstore.ipa
+            build/WidgetStudio-unsigned.ipa
           retention-days: 30
