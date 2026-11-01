@@ -139,7 +139,6 @@ struct ShiftCalendarView: View {
             backgroundView
             content
         }
-        .containerBackground(for: .widget) { Color.clear }
     }
 
     @ViewBuilder
@@ -376,46 +375,5 @@ struct ShiftCalendarView: View {
             return Color.white.opacity(isDark ? 0.06 : 0.55)
         }
         return color.opacity(isDark ? 0.18 : 0.14)
-    }
-}
-
-struct ShiftCalendarEntry: TimelineEntry {
-    let date: Date
-    let config: ShiftCalendarConfig
-}
-
-struct ShiftCalendarProvider: TimelineProvider {
-    func placeholder(in context: Context) -> ShiftCalendarEntry {
-        ShiftCalendarEntry(date: Date(), config: .placeholder)
-    }
-
-    func getSnapshot(in context: Context, completion: @escaping (ShiftCalendarEntry) -> Void) {
-        completion(ShiftCalendarEntry(date: Date(), config: SharedStore.loadShiftCalendar()))
-    }
-
-    func getTimeline(in context: Context, completion: @escaping (Timeline<ShiftCalendarEntry>) -> Void) {
-        let now = Date()
-        let config = SharedStore.loadShiftCalendar()
-        let calendar = Calendar.current
-        let tomorrow = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: now))
-            ?? now.addingTimeInterval(86_400)
-        let entries = [
-            ShiftCalendarEntry(date: now, config: config),
-            ShiftCalendarEntry(date: tomorrow, config: config)
-        ]
-        let refresh = calendar.date(byAdding: .hour, value: 6, to: now) ?? now.addingTimeInterval(21_600)
-        completion(Timeline(entries: entries, policy: .after(refresh)))
-    }
-}
-
-struct ShiftCalendarWidget: Widget {
-    var body: some WidgetConfiguration {
-        StaticConfiguration(kind: "ShiftCalendarWidget", provider: ShiftCalendarProvider()) { entry in
-            ShiftCalendarView(config: entry.config, date: entry.date)
-        }
-        .configurationDisplayName("倒班日历")
-        .description("自定义循环班次，周排班与整月日历皆可。")
-        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
-        .contentMarginsDisabled()
     }
 }

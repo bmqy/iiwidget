@@ -33,6 +33,34 @@ struct ShiftCalendarEditorView: View {
         }
     }
 
+    private var sizeSelector: some View {
+        HStack(spacing: 3) {
+            ForEach(PreviewSize.allCases) { size in
+                Button {
+                    previewSize = size
+                } label: {
+                    Text(size.rawValue)
+                        .font(.system(size: 13, weight: previewSize == size ? .semibold : .regular))
+                        .foregroundStyle(previewSize == size ? Color.primary : Color.secondary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 7)
+                        .contentShape(Rectangle())
+                        .background {
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .fill(previewSize == size ? Color(.secondarySystemGroupedBackground) : Color.clear)
+                                .shadow(color: .black.opacity(previewSize == size ? 0.1 : 0), radius: 2, y: 1)
+                        }
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(3)
+        .background(
+            RoundedRectangle(cornerRadius: 11, style: .continuous)
+                .fill(Color.primary.opacity(0.07))
+        )
+    }
+
     private var previewCaption: String {
         let f = DateFormatter()
         f.locale = Locale(identifier: "zh_CN")
@@ -44,12 +72,7 @@ struct ShiftCalendarEditorView: View {
         Form {
             Section {
                 VStack(spacing: 12) {
-                    Picker("预览尺寸", selection: $previewSize) {
-                        ForEach(PreviewSize.allCases) { size in
-                            Text(size.rawValue).tag(size)
-                        }
-                    }
-                    .pickerStyle(.segmented)
+                    sizeSelector
 
                     HStack {
                         Button {
@@ -78,6 +101,7 @@ struct ShiftCalendarEditorView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                         .shadow(color: .black.opacity(0.16), radius: 12, y: 6)
                         .frame(maxWidth: .infinity)
+                        .id(previewSize)
                 }
                 .padding(.vertical, 6)
                 .listRowInsets(EdgeInsets(top: 10, leading: 10, bottom: 10, trailing: 10))
@@ -174,7 +198,7 @@ struct ShiftCalendarEditorView: View {
                 }
                 .disabled(config.cycle.contains(where: { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }))
             } footer: {
-                Text("保存后回桌面长按空白处 → 左上角「+」→ 搜索 Widget Studio → 选择「倒班日历」。")
+                Text("保存后回到桌面：长按空白处 → 左上角「+」→ 搜索 Widget Studio → 选尺寸添加；再长按该小组件 →「编辑小组件」→ 模板选「倒班日历」、排班制选「App 内自定义」。这一步需要 App Group 可用（付费开发者账号签名）；免费签名请直接在编辑小组件里选内置排班制。")
             }
 
             Section {
@@ -293,7 +317,7 @@ struct DiagnosticsView: View {
             }
 
             Section("已注册模板") {
-                Text("文字卡片 / 计数器 / 倒班日历").font(.footnote)
+                Text("Widget Studio（统一入口）：文字卡片 / 计数器 / 倒班日历").font(.footnote)
             }
 
             Section {

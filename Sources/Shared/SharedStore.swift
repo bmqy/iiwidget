@@ -67,6 +67,7 @@ struct ShiftCalendarConfig: Codable, Equatable {
     static let placeholder = ShiftCalendarConfig()
 
     func shift(on date: Date, calendar: Calendar = .current) -> String {
+        guard !cycle.isEmpty else { return "休息" }
         let start = calendar.startOfDay(for: anchorDate)
         let target = calendar.startOfDay(for: date)
         let diff = calendar.dateComponents([.day], from: start, to: target).day ?? 0

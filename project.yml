@@ -9,8 +9,8 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.9"
-    MARKETING_VERSION: "1.1"
-    CURRENT_PROJECT_VERSION: "2"
+    MARKETING_VERSION: "1.2"
+    CURRENT_PROJECT_VERSION: "3"
     CODE_SIGN_STYLE: Automatic
     DEVELOPMENT_TEAM: ""
     ENABLE_USER_SCRIPT_SANDBOXING: NO
@@ -22,7 +22,7 @@ targets:
     sources:
       - path: Sources/App
       - path: Sources/Shared
-      - path: Sources/Widget/ShiftCalendarWidget.swift
+      - path: Sources/Widget/ShiftCalendarView.swift
       - path: Resources/Assets.xcassets
     settings:
       base:

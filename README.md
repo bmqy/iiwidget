@@ -1,41 +1,59 @@
 # Widget Studio
 
-一个「自己造 iOS 桌面小组件」的 App：预置模板 + 可视化编辑，设置好后直接添加到 iPhone 主屏幕。
+一个「自己造 iOS 桌面小组件」的 App：桌面只需添加 **一个** Widget Studio 小组件，选尺寸；之后长按它 →「编辑小组件」，就能在三种模板之间切换。
 
-- 宿主 App：SwiftUI 编辑器
-- WidgetKit 扩展：文字卡片、计数器、倒班日历
+## 添加与切换（重要）
 
-## 倒班日历
+1. 桌面长按空白处 → 左上角「+」→ 搜索 **Widget Studio**
+2. 选尺寸：小 / 中 / 大（三种尺寸都支持全部模板）
+3. 添加完成后，**长按该小组件 → 编辑小组件**，在参数里选：
+   - 模板：文字卡片 / 计数器 / 倒班日历
+   - 主题色、图标、标题、正文、数值、单位
+   - 排班制、日历风格
 
-- 自定义轮班循环：增加、删除、排序班次，可填「白班」「夜班」「中班」「休息」等。
-- 自定义循环锚点日期：锚点当天对应循环的第一个班次，按自然日向前/后推算。
-- 三种视觉样式：极光深色渐变、简约暖纸感、柔和浅色渐变。
-- 小号组件：月历周格、每日班次色点、今日班次胶囊。
-- 中号/大号组件：月历班次标签、今日状态、班次图例；切换横竖尺寸由系统完成。
-- App 内实时预览、可切换小号/中号预览和月份，保存后刷新桌面小组件。
+## 三种模板
 
-编辑入口：打开 App 首页的「倒班日历」卡片。按循环顺序编辑班次，设置第一天日期，选择喜欢的风格，点「保存排班并刷新小组件」。回到桌面添加「倒班日历」小组件即可。
+**文字卡片**：标题 + 正文 + 图标 + 主题色渐变。文字来源可选「在编辑小组件里直接填」或「用 App 里编辑的」。
 
-## 工程
+**计数器**：标题 + 数值 + 单位，适合天数、次数、打卡。
+
+**倒班日历**
+- 内置 5 套排班制：上二休二、做一休一、两班倒、三班倒、四班三运转
+- 也可在 App 内自定义循环班次（增删、排序、设置起始日期），排班制选「App 内自定义」
+- 三种视觉风格：极光（深色渐变）、简约（暖纸感）、柔和（浅色渐变）
+- 小尺寸显示今日 + 本周，中尺寸显示一周班次 + 图例，大尺寸显示整月日历
+- 今日高亮、班次配色区分、休息日标记
+
+> 只有「App 内自定义排班」和「用 App 里编辑的文字」需要 App Group（付费开发者账号签名才稳定可用）。免费 Apple ID 签名时用内置排班制与直接填写的文字，功能照常。
+
+## 工程结构
 
 ```text
-project.yml                         XcodeGen 工程定义（App + Widget Extension）
-Sources/App/                        宿主 App 与编辑器
-Sources/Shared/                     共用配置模型、App Group 存储、卡片渲染
-Sources/Widget/                     WidgetKit 扩展（3 种模板）
+project.yml                          XcodeGen 工程定义（App + Widget Extension）
+Sources/App/                         宿主 App：文字卡片编辑器、倒班日历编辑器、诊断页
+Sources/Shared/                      配置模型、App Group 存储、卡片渲染视图
+Sources/Widget/                      WidgetKit 扩展（单一 kind + AppIntent 配置）
 Resources/Assets.xcassets/           App 图标
-.github/workflows/build.yml         GitHub Actions 云端编译、打包未签名 ipa
+.github/workflows/build.yml          GitHub Actions 云端编译并产出未签名 ipa
+```
+
+```text
+Sources/Widget/
+  WidgetBundle.swift                 只注册 StudioWidget 一个 kind
+  StudioWidget.swift                 kind、尺寸支持、Timeline 提供器、模板分发视图
+  StudioIntent.swift                 「编辑小组件」里的全部参数与枚举
+  ShiftCalendarView.swift            倒班日历渲染（小/中/大三种布局）
 ```
 
 ## 生成 IPA
 
-1. 将本目录推到 GitHub 仓库 `main`（或 `master`）分支。
-2. 在仓库 Actions 查看 `build-ipa` 工作流。
-3. 构建成功后从 Artifacts 下载 `WidgetStudio-unsigned-ipa.zip`，解压得 `WidgetStudio-unsigned.ipa`。
+```bash
+git push origin main     # 触发 Actions
+```
 
-该 IPA **未签名**，需用 Sideloadly / AltStore 等签名后安装。免费 Apple ID 签名有效期通常 7 天；付费开发者账号通常一年。
+仓库 Actions → 最新一次 `build-ipa` → Artifacts 下载 `WidgetStudio-unsigned-ipa`，解压得 ipa。
 
-## Xcode 本地构建
+## 本地构建
 
 ```bash
 brew install xcodegen
@@ -43,8 +61,17 @@ xcodegen generate
 open WidgetStudio.xcodeproj
 ```
 
-## 重要提示
+## 签名与安装
 
-1. `Sources/Shared/SharedStore.swift` 的 App Group ID 要与开发者账号中启用的值一致。免费 Apple ID 一般不支持 App Group entitlement；这种情况下文字卡片、倒班日历 App 内保存共享配置不会工作。**计数器的 AppIntent 配置不受影响。**
-2. `project.yml` 中 Bundle ID 建议改成你自己的，且 widget Bundle ID 必须以主 App Bundle ID 为前缀。
-3. WidgetKit 的小组件类型需在编译时注册，不能运行时新增；当前是预置三类模板。
+产物 **未签名**，需自行签名安装：
+
+- Sideloadly / AltStore：免费 Apple ID，约 7 天有效，到期重签
+- 付费开发者账号：约 1 年有效，并可注册 App Group
+
+## 常见问题
+
+**桌面列表里没有对应模板？** 现在只有一个 Widget Studio 条目，模板在「编辑小组件」里切换，不再依赖多个 kind。
+
+**改了 App 里的排班，桌面没变？** 检查 App 内「诊断」页的 App Group 状态；免费签名通常不可用，请在「编辑小组件」里选内置排班制。
+
+**Bundle ID 要求**：widget 的 Bundle ID 必须以主 App 的 Bundle ID 为前缀，例如 `com.you.app` 与 `com.you.app.widget`。
