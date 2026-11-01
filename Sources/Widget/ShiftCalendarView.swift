@@ -96,6 +96,26 @@ struct ShiftCalendarView: View {
         return f.string(from: date)
     }
 
+    private var tomorrowDate: Date {
+        cal.date(byAdding: .day, value: 1, to: cal.startOfDay(for: date)) ?? date
+    }
+
+    private var tomorrowShift: String { config.shift(on: tomorrowDate, calendar: cal) }
+
+    private func dateLabel(for day: Date) -> String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "zh_CN")
+        f.dateFormat = "M月d日 · EEE"
+        return f.string(from: day)
+    }
+
+    private func shortDay(for day: Date) -> String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "zh_CN")
+        f.dateFormat = "M/d"
+        return f.string(from: day)
+    }
+
     private var todayShift: String { config.shift(on: date, calendar: cal) }
     private var isRestToday: Bool { config.isRest(todayShift) }
 
@@ -175,43 +195,63 @@ struct ShiftCalendarView: View {
     // MARK: 小尺寸 —— 今日 + 本周
 
     private var smallView: some View {
-        VStack(alignment: .leading, spacing: 9) {
+        VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 4) {
-                Text(monthTitle)
-                    .font(.system(size: 13, weight: .semibold, design: .rounded))
-                    .foregroundStyle(primaryText)
+                Text(dateLabel(for: date))
+                    .font(.system(size: 9.5, weight: .medium))
+                    .foregroundStyle(secondaryText)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
                 Spacer(minLength: 2)
                 Image(systemName: "calendar.badge.clock")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(shiftColor(todayShift))
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(accentToday)
             }
 
-            HStack(alignment: .center, spacing: 4) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(todayTitle)
-                        .font(.system(size: 8.5, weight: .medium))
-                        .foregroundStyle(secondaryText)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                    Text(isRestToday ? "休息日" : "上班日")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(secondaryText)
-                }
-                Spacer(minLength: 2)
-                shiftPill(todayShift, fontSize: 14)
+            Spacer(minLength: 8)
+
+            HStack(spacing: 5) {
+                RoundedRectangle(cornerRadius: 1.5)
+                    .fill(accentToday)
+                    .frame(width: 3, height: 12)
+                Text("今天")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(secondaryText)
             }
+            Text(todayShift)
+                .font(.system(size: 30, weight: .bold, design: .rounded))
+                .foregroundStyle(primaryText)
+                .lineLimit(1)
+                .minimumScaleFactor(0.45)
+                .padding(.top, 3)
 
-            Spacer(minLength: 0)
+            Spacer(minLength: 8)
 
-            HStack(spacing: 3) {
-                ForEach(Array(weekDays.enumerated()), id: \.offset) { _, day in
-                    weekCell(day, compact: true)
-                }
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(shiftColor(tomorrowShift))
+                    .frame(width: 7, height: 7)
+                Text("明天")
+                    .font(.system(size: 9.5, weight: .medium))
+                    .foregroundStyle(secondaryText)
+                Text(tomorrowShift)
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .foregroundStyle(primaryText)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                Spacer(minLength: 0)
+                Text(shortDay(for: tomorrowDate))
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(secondaryText)
+            }
+            .padding(.horizontal, 9)
+            .padding(.vertical, 7)
+            .background {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Color.white.opacity(isDark ? 0.09 : 0.55))
             }
         }
-        .padding(11)
+        .padding(13)
     }
 
     // MARK: 中尺寸 —— 今日 + 一周班次 + 图例
