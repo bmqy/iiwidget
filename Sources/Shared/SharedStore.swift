@@ -130,7 +130,7 @@ struct StudioSettings: Codable, Equatable {
 
 enum SharedStore {
     /// 需要和开发者账号里注册的 App Group 完全一致。
-    static let appGroupID = "group.com.widgetstudio.shared"
+    static let appGroupID = "group.com.miniwidgets.shared"
     private static let textCardKey = "textcard.config.v1"
     private static let shiftCalendarKey = "shiftcalendar.config.v1"
     private static let settingsKey = "studio.settings.v1"
