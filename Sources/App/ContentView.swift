@@ -2,190 +2,182 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var settings = SharedStore.loadSettings()
-    @State private var config: TextCardConfig = SharedStore.load()
-    @State private var showSaved = false
-    @State private var showShiftCalendar = false
-
-    private let symbols = [
-        "sparkles", "heart.fill", "flame.fill", "leaf.fill", "moon.stars.fill",
-        "sun.max.fill", "bolt.fill", "star.fill", "drop.fill", "book.fill"
-    ]
-
-    private let palettes = [
-        "#5B8DEF", "#FF6B6B", "#34C759", "#FF9F0A",
-        "#AF52DE", "#00C7BE", "#FF375F", "#3A3A3C"
-    ]
+    @State private var textConfig = SharedStore.load()
+    @State private var shiftConfig = SharedStore.loadShiftCalendar()
 
     var body: some View {
         NavigationStack {
-            Form {
+            List {
                 Section {
-                    Picker("桌面显示", selection: $settings.template) {
-                        ForEach(StudioTemplate.allCases) { template in
-                            Label(template.label, systemImage: template.symbolName).tag(template)
-                        }
-                    }
-                    .pickerStyle(.inline)
-                    .labelsHidden()
+                    previewCanvas
+                        .listRowInsets(EdgeInsets(top: 16, leading: 10, bottom: 8, trailing: 10))
+                        .listRowBackground(Color.clear)
 
-                    if settings.template == .counter {
-                        TextField("标题", text: $settings.counterTitle)
-                        Stepper(value: $settings.counterValue, in: -9999...99999) {
-                            HStack {
-                                Text("数值")
-                                Spacer()
-                                Text("\(settings.counterValue)").foregroundStyle(.secondary)
-                            }
-                        }
-                        TextField("单位", text: $settings.counterUnit)
-                    }
+                    templatePicker
+                        .listRowInsets(EdgeInsets(top: 10, leading: 12, bottom: 14, trailing: 12))
                 } header: {
-                    Text("桌面小组件显示")
+                    Text("桌面显示")
                 } footer: {
-                    Text("小、中、大三种尺寸都显示这里选中的模板，改完自动刷新桌面。")
+                    Text("小、中、大三种尺寸都显示这里选中的模板，改动会自动同步到桌面。")
                 }
 
-                Section("小组件模板") {
-                    Button {
-                        showShiftCalendar = true
+                Section("设置") {
+                    NavigationLink {
+                        ShiftCalendarEditorView()
                     } label: {
-                        HStack(spacing: 13) {
-                            Image(systemName: "calendar.badge.clock")
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundStyle(.white)
-                                .frame(width: 42, height: 42)
-                                .background(LinearGradient(colors: [Color(hex: "#5EDBC5"), Color(hex: "#739BFF")], startPoint: .topLeading, endPoint: .bottomTrailing))
-                                .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text("倒班日历设置")
-                                    .font(.system(size: 15, weight: .semibold))
-                                    .foregroundStyle(.primary)
-                                Text("排班循环 · 日历风格 · 三尺寸预览")
-                                    .font(.system(size: 11))
-                                    .foregroundStyle(.secondary)
-                            }
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundStyle(.tertiary)
-                        }
-                        .padding(.vertical, 3)
+                        entryRow(
+                            symbol: "calendar.badge.clock",
+                            tint: [Color(hex: "#5EDBC5"), Color(hex: "#739BFF")],
+                            title: "倒班日历",
+                            subtitle: "\(shiftConfig.cycle.count) 天循环 · \(shiftConfig.style.label)"
+                        )
                     }
-                    .buttonStyle(.plain)
-                }
 
-                Section("文字卡片预览") {
-                    TextCardView(config: config)
-                        .frame(height: 172)
-                        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                        .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
-                }
-
-                Section("文字内容") {
-                    TextField("标题", text: $config.title)
-                    TextField("正文", text: $config.message, axis: .vertical)
-                        .lineLimit(1...3)
-                }
-
-                Section("图标") {
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 5), spacing: 12) {
-                        ForEach(symbols, id: \.self) { name in
-                            Button {
-                                config.symbol = name
-                            } label: {
-                                Image(systemName: name)
-                                    .font(.system(size: 20))
-                                    .frame(maxWidth: .infinity, minHeight: 38)
-                                    .foregroundStyle(config.symbol == name ? Color.white : Color.primary)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                            .fill(config.symbol == name ? Color.accentColor : Color.secondary.opacity(0.12))
-                                    )
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .padding(.vertical, 4)
-                }
-
-                Section("配色") {
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 8), spacing: 12) {
-                        ForEach(palettes, id: \.self) { hex in
-                            Button {
-                                config.themeHex = hex
-                            } label: {
-                                Circle()
-                                    .fill(Color(hex: hex))
-                                    .frame(height: 30)
-                                    .overlay(
-                                        Circle().strokeBorder(Color.primary.opacity(config.themeHex == hex ? 0.6 : 0), lineWidth: 2)
-                                    )
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .padding(.vertical, 4)
-                }
-
-                Section("样式") {
-                    Picker("样式", selection: Binding(
-                        get: { config.style },
-                        set: { config.style = $0 }
-                    )) {
-                        ForEach(TextCardStyle.allCases) { style in
-                            Text(style.label).tag(style)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                }
-
-                Section {
-                    Button {
-                        save()
+                    NavigationLink {
+                        TextCardEditorView()
                     } label: {
-                        Text("保存全部设置")
-                            .frame(maxWidth: .infinity)
-                            .fontWeight(.semibold)
+                        entryRow(
+                            symbol: "text.quote",
+                            tint: [Color(hex: "#FF9F0A"), Color(hex: "#FF6B6B")],
+                            title: "文字卡片",
+                            subtitle: textConfig.title + " · " + textConfig.message
+                        )
                     }
-                } footer: {
-                    Text("保存后回到桌面：长按空白处 → 左上角「+」→ 搜索 Widget Studio → 选尺寸添加。")
+
+                    NavigationLink {
+                        CounterEditorView()
+                    } label: {
+                        entryRow(
+                            symbol: "number.circle.fill",
+                            tint: [Color(hex: "#AF52DE"), Color(hex: "#5B8DEF")],
+                            title: "计数器",
+                            subtitle: "\(settings.counterTitle) \(settings.counterValue) \(settings.counterUnit)"
+                        )
+                    }
                 }
 
-                Section {
-                    HStack {
-                        Text("版本")
-                        Spacer()
-                        Text("v" + (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"))
-                        Text("build " + (Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"))
+                Section("其他") {
+                    NavigationLink {
+                        DiagnosticsView()
+                    } label: {
+                        entryRow(
+                            symbol: "stethoscope",
+                            tint: [Color(hex: "#8E8E93"), Color(hex: "#48484A")],
+                            title: "诊断",
+                            subtitle: "扩展状态 · 共享存储 · 版本信息"
+                        )
                     }
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                } footer: {
-                    Text("若这里的版本不是最新的，说明装的是旧包，请重新签名安装。")
                 }
             }
             .navigationTitle("Widget Studio")
-            .navigationDestination(isPresented: $showShiftCalendar) {
-                ShiftCalendarEditorView()
+            .onAppear(perform: reload)
+            .onChange(of: settings) { _, _ in SharedStore.save(settings) }
+            .onChange(of: textConfig) { _, _ in SharedStore.save(textConfig) }
+        }
+    }
+
+    // MARK: - 预览
+
+    private var previewCanvas: some View {
+        GeometryReader { geo in
+            let scale = min(1, geo.size.width / 338)
+
+            HStack {
+                Spacer(minLength: 0)
+                widgetPreview
+                    .frame(width: 338, height: 158)
+                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                    .shadow(color: .black.opacity(0.12), radius: 10, y: 5)
+                    .scaleEffect(scale)
+                    .frame(width: 338 * scale, height: 158 * scale)
+                Spacer(minLength: 0)
             }
-            .alert("已保存", isPresented: $showSaved) {
-                Button("好", role: .cancel) {}
-            } message: {
-                Text("小组件已刷新，如果没变化请等几秒。")
-            }
-            .onChange(of: settings) { _, _ in
-                SharedStore.save(settings)
-            }
-            .onChange(of: config) { _, _ in
-                SharedStore.save(config)
+            .frame(width: geo.size.width, height: geo.size.height)
+        }
+        .frame(height: 158)
+    }
+
+    @ViewBuilder
+    private var widgetPreview: some View {
+        switch settings.template {
+        case .shiftCalendar:
+            ShiftCalendarView(config: shiftConfig, date: Date(), familyOverride: .systemMedium)
+        case .textCard:
+            TextCardView(config: textConfig)
+        case .counter:
+            CounterCardView(
+                title: settings.counterTitle,
+                value: settings.counterValue,
+                unit: settings.counterUnit,
+                hex: textConfig.themeHex,
+                family: .systemMedium
+            )
+        }
+    }
+
+    // MARK: - 模板选择
+
+    private var templatePicker: some View {
+        HStack(spacing: 8) {
+            ForEach(StudioTemplate.allCases) { template in
+                Button {
+                    settings.template = template
+                } label: {
+                    VStack(spacing: 6) {
+                        Image(systemName: template.symbolName)
+                            .font(.system(size: 17, weight: .semibold))
+                        Text(template.label)
+                            .font(.system(size: 11, weight: .semibold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 11)
+                    .foregroundStyle(settings.template == template ? Color.white : Color.primary)
+                    .background {
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(settings.template == template
+                                  ? AnyShapeStyle(LinearGradient(colors: [Color(hex: "#5B8DEF"), Color(hex: "#AF52DE")], startPoint: .topLeading, endPoint: .bottomTrailing))
+                                  : AnyShapeStyle(Color(.secondarySystemGroupedBackground)))
+                    }
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .strokeBorder(Color.primary.opacity(settings.template == template ? 0 : 0.06), lineWidth: 1)
+                    }
+                }
+                .buttonStyle(.plain)
             }
         }
     }
 
-    private func save() {
-        SharedStore.save(settings)
-        SharedStore.save(config)
-        showSaved = true
+    // MARK: - 列表行
+
+    private func entryRow(symbol: String, tint: [Color], title: String, subtitle: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: symbol)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 34, height: 34)
+                .background(LinearGradient(colors: tint, startPoint: .topLeading, endPoint: .bottomTrailing))
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.primary)
+                Text(subtitle)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+        }
+        .padding(.vertical, 2)
+    }
+
+    private func reload() {
+        settings = SharedStore.loadSettings()
+        textConfig = SharedStore.load()
+        shiftConfig = SharedStore.loadShiftCalendar()
     }
 }
 

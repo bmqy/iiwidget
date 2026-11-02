@@ -6,7 +6,6 @@ struct ShiftCalendarEditorView: View {
     @State private var config = SharedStore.loadShiftCalendar()
     @State private var previewDate = Date()
     @State private var saved = false
-    @State private var showDiagnostics = false
 
     private var previewCaption: String {
         let f = DateFormatter()
@@ -155,32 +154,12 @@ struct ShiftCalendarEditorView: View {
                 }
                 .disabled(config.cycle.contains(where: { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }))
             } footer: {
-                Text("保存后回到桌面：长按空白处 → 左上角「+」→ 搜索 Widget Studio → 选尺寸添加；再长按该小组件 →「编辑小组件」→ 模板选「倒班日历」。排班可以直接选内置排班制，或选「自定义」后把上面的两行填进去。")
-            }
-
-            Section {
-                Button {
-                    showDiagnostics = true
-                } label: {
-                    Label("桌面找不到小组件？点这里自查", systemImage: "stethoscope")
-                }
+                Text("保存后桌面会自动刷新。桌面小组件显示哪个模板，在首页「桌面显示」里切换。")
             }
         }
         .navigationTitle("倒班日历")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { EditButton() }
-        .sheet(isPresented: $showDiagnostics) {
-            NavigationStack {
-                DiagnosticsView()
-                    .navigationTitle("诊断")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .confirmationAction) {
-                            Button("关闭") { showDiagnostics = false }
-                        }
-                    }
-            }
-        }
         .alert("排班已保存", isPresented: $saved) {
             Button("知道了", role: .cancel) {}
         } message: {
@@ -243,80 +222,5 @@ struct ShiftCalendarEditorView: View {
         SharedStore.saveShiftCalendar(normalized)
         config = normalized
         saved = true
-    }
-}
-
-/// 自查用：确认扩展是否被系统识别、App Group 是否可用。
-struct DiagnosticsView: View {
-    @State private var widgetKinds: [String] = []
-    @State private var widgetError: String?
-
-    private var appID: String { Bundle.main.bundleIdentifier ?? "未知" }
-
-    private var extensionIDs: [String] {
-        let plugIns = Bundle.main.bundleURL.appendingPathComponent("PlugIns")
-        let names = (try? FileManager.default.contentsOfDirectory(atPath: plugIns.path)) ?? []
-        return names.compactMap { name in
-            Bundle(url: plugIns.appendingPathComponent(name))?.bundleIdentifier
-        }
-    }
-
-    private var prefixOK: Bool {
-        guard let appex = extensionIDs.first else { return false }
-        return appex.hasPrefix(appID + ".")
-    }
-
-    var body: some View {
-        Form {
-            Section("宿主 App") {
-                LabeledContent("Bundle ID", value: appID)
-            }
-
-            Section {
-                if extensionIDs.isEmpty {
-                    Text("未检测到扩展：签名工具可能漏签了 Widget 扩展。")
-                        .foregroundStyle(.red)
-                } else {
-                    ForEach(extensionIDs, id: \.self) { id in
-                        Text(id).font(.footnote.monospaced())
-                    }
-                    LabeledContent("前缀检查", value: prefixOK ? "正常" : "异常（扩展 Bundle ID 必须以主 App 为前缀）")
-                }
-            } header: {
-                Text("内嵌小组件扩展")
-            } footer: {
-                Text("扩展 Bundle ID 必须是「主 App Bundle ID + .后缀」。TrollStore / 自签改名时若只改了主 App，小组件会一直停在占位状态。")
-            }
-
-            Section {
-                if let widgetError {
-                    Text(widgetError).font(.footnote).foregroundStyle(.red)
-                } else if widgetKinds.isEmpty {
-                    Text("系统里还没有已添加的 Widget Studio 小组件。")
-                        .font(.footnote)
-                } else {
-                    ForEach(widgetKinds, id: \.self) { kind in
-                        Text(kind).font(.footnote.monospaced())
-                    }
-                }
-            } header: {
-                Text("系统已登记的小组件")
-            }
-
-            Section {
-                Text("全部功能都走小组件自身参数，不依赖 App Group。若小组件一直是占位图，多半是扩展没能启动，请查看「分析数据」里的 WidgetStudioWidget 崩溃日志。")
-                    .font(.footnote)
-            }
-        }
-        .task {
-            WidgetCenter.shared.getCurrentConfigurations { result in
-                switch result {
-                case .success(let infos):
-                    widgetKinds = infos.map { "kind: \($0.kind)" }
-                case .failure(let error):
-                    widgetError = error.localizedDescription
-                }
-            }
-        }
     }
 }
