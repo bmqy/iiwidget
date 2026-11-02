@@ -113,7 +113,7 @@ struct ShiftCalendarEditorView: View {
             } header: {
                 Text("同步状态")
             } footer: {
-                Text("若显示不可用，请使用本项目 Actions 产出的 WidgetStudio-trollstore.ipa（构建时已写入 App Group 权限），或用自己的描述文件签名并保留 App Group 能力。")
+                Text("若显示不可用：请确认安装的是 Actions 里的 **mini-widgets-trollstore.ipa**（这个包在构建时已把 App Group 权限写进二进制）。装成 mini-widgets-unsigned.ipa 或用其它工具重新签名，权限会被丢掉，桌面小组件就读不到这里的设置。")
             }
 
             Section {

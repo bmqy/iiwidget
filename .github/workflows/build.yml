@@ -66,11 +66,16 @@ jobs:
           zip -qry ../mini-widgets-trollstore.ipa Payload
           ls -lh ../mini-widgets-trollstore.ipa ../mini-widgets-unsigned.ipa
 
-      - name: Upload artifact
+      - name: Upload TrollStore IPA
         uses: actions/upload-artifact@v4
         with:
-          name: mini-widgets-ipa
-          path: |
-            build/mini-widgets-trollstore.ipa
-            build/mini-widgets-unsigned.ipa
+          name: mini-widgets-trollstore
+          path: build/mini-widgets-trollstore.ipa
+          retention-days: 30
+
+      - name: Upload unsigned IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: mini-widgets-unsigned
+          path: build/mini-widgets-unsigned.ipa
           retention-days: 30

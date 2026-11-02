@@ -25,6 +25,29 @@ struct DiagnosticsView: View {
         Form {
             Section("宿主 App") {
                 LabeledContent("Bundle ID", value: appID)
+                LabeledContent(
+                    "版本",
+                    value: "v" + (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?")
+                        + " (" + (Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?") + ")"
+                )
+            }
+
+            Section {
+                LabeledContent(
+                    "App Group",
+                    value: SharedStore.appGroupID
+                )
+                LabeledContent(
+                    "共享容器",
+                    value: SharedStore.isAppGroupAvailable ? "可用" : "不可用"
+                )
+                if !SharedStore.isAppGroupAvailable {
+                    Text("当前安装包没有带上 App Group 权限：桌面小组件会显示默认内容，右上角出现「共享未启用」角标。请安装 Actions 产物 mini-widgets-trollstore.ipa（已预签名并写入权限），或在你自己的签名描述文件里启用 App Group。")
+                        .font(.footnote)
+                        .foregroundStyle(.orange)
+                }
+            } header: {
+                Text("共享存储")
             }
 
             Section {
@@ -59,7 +82,7 @@ struct DiagnosticsView: View {
             }
 
             Section {
-                Text("全部功能都走小组件自身参数，不依赖 App Group。若小组件一直是占位图，多半是扩展没能启动，请查看「分析数据」里的 WidgetStudioWidget 崩溃日志。")
+                Text("若小组件一直是占位图（灰底幽灵块），说明扩展没能启动：请查看 设置 → 隐私与安全性 → 分析与改进 → 分析数据，找 MiniWidgetsWidget 开头的崩溃日志。")
                     .font(.footnote)
             }
         }

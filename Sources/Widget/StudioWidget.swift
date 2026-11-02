@@ -12,6 +12,7 @@ struct StudioEntry: TimelineEntry {
     let counterValue: Int
     let counterUnit: String
     let shiftConfig: ShiftCalendarConfig
+    let sharedAvailable: Bool
 
     init(date: Date, family: WidgetFamily) {
         self.date = date
@@ -54,6 +55,22 @@ struct StudioEntryView: View {
     let entry: StudioEntry
 
     var body: some View {
+        content
+            .overlay(alignment: .topTrailing) {
+                if !entry.sharedAvailable {
+                    Text("共享未启用")
+                        .font(.system(size: 7.5, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(Capsule().fill(Color(hex: "#FF3B30")))
+                        .padding(6)
+                }
+            }
+    }
+
+    @ViewBuilder
+    private var content: some View {
         switch entry.template {
         case .textCard:
             TextCardView(config: entry.textConfig)
