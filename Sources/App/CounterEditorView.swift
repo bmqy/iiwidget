@@ -26,7 +26,7 @@ struct CounterEditorView: View {
                 Text("预览")
             }
 
-            Section("内容") {
+            Section {
                 TextField("标题", text: $settings.counterTitle)
                 Stepper(value: $settings.counterValue, in: -9999...99999) {
                     HStack {
@@ -36,6 +36,8 @@ struct CounterEditorView: View {
                     }
                 }
                 TextField("单位", text: $settings.counterUnit)
+            } header: {
+                Text("内容")
             } footer: {
                 Text("配色取自「文字卡片」设置里的主题色，改那边即可。")
             }
