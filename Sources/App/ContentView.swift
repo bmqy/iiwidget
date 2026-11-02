@@ -69,7 +69,7 @@ struct ContentView: View {
                     }
                 }
             }
-            .navigationTitle("Widget Studio")
+            .navigationTitle("Mini Widgets")
             .onAppear(perform: reload)
             .onChange(of: settings) { _, _ in SharedStore.save(settings) }
             .onChange(of: textConfig) { _, _ in SharedStore.save(textConfig) }

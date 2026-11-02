@@ -1,4 +1,4 @@
-# Widget Studio
+# Mini Widgets
 
 一个「自己造 iOS 桌面小组件」的 App：桌面只需添加 **一个** Widget Studio 小组件，选尺寸；之后长按它 →「编辑小组件」，就能在三种模板之间切换。
 

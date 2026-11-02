@@ -1,4 +1,4 @@
-name: WidgetStudio
+name: MiniWidgets
 options:
   bundleIdPrefix: com.widgetstudio
   deploymentTarget:
@@ -9,14 +9,14 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.9"
-    MARKETING_VERSION: "1.9"
-    CURRENT_PROJECT_VERSION: "10"
+    MARKETING_VERSION: "2.0"
+    CURRENT_PROJECT_VERSION: "11"
     CODE_SIGN_STYLE: Automatic
     DEVELOPMENT_TEAM: ""
     ENABLE_USER_SCRIPT_SANDBOXING: NO
 
 targets:
-  WidgetStudio:
+  MiniWidgets:
     type: application
     platform: iOS
     sources:
@@ -27,13 +27,13 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.widgetstudio.app
-        PRODUCT_NAME: WidgetStudio
+        PRODUCT_NAME: MiniWidgets
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         TARGETED_DEVICE_FAMILY: "1"
     info:
       path: Support/App-Info.plist
       properties:
-        CFBundleDisplayName: Widget Studio
+        CFBundleDisplayName: Mini Widgets
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         UILaunchScreen: {}
@@ -41,10 +41,10 @@ targets:
           - UIInterfaceOrientationPortrait
         ITSAppUsesNonExemptEncryption: false
     dependencies:
-      - target: WidgetStudioWidget
+      - target: MiniWidgetsWidget
         embed: true
 
-  WidgetStudioWidget:
+  MiniWidgetsWidget:
     type: app-extension
     platform: iOS
     sources:
@@ -53,24 +53,24 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.widgetstudio.app.widget
-        PRODUCT_NAME: WidgetStudioWidget
+        PRODUCT_NAME: MiniWidgetsWidget
         TARGETED_DEVICE_FAMILY: "1"
         APPLICATION_EXTENSION_API_ONLY: YES
         SKIP_INSTALL: YES
     info:
       path: Support/Widget-Info.plist
       properties:
-        CFBundleDisplayName: Widget Studio
+        CFBundleDisplayName: Mini Widgets
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
 
 schemes:
-  WidgetStudio:
+  MiniWidgets:
     build:
       targets:
-        WidgetStudio: all
+        MiniWidgets: all
     run:
       config: Debug
     archive:

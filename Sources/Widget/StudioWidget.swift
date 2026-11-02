@@ -81,7 +81,7 @@ struct StudioWidget: Widget {
             StudioEntryView(entry: entry)
                 .containerBackground(for: .widget) { Color.clear }
         }
-        .configurationDisplayName("Widget Studio")
+        .configurationDisplayName("Mini Widgets")
         .description("先在 App 里选好要显示的模板，再添加这个小组件。")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
         .contentMarginsDisabled()

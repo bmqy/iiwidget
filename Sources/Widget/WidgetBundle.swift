@@ -2,7 +2,7 @@ import WidgetKit
 import SwiftUI
 
 @main
-struct WidgetStudioWidgetBundle: WidgetBundle {
+struct MiniWidgetsBundle: WidgetBundle {
     var body: some Widget {
         StudioWidget()
         StudioProbeWidget()

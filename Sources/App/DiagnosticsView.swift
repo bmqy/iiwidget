@@ -47,7 +47,7 @@ struct DiagnosticsView: View {
                 if let widgetError {
                     Text(widgetError).font(.footnote).foregroundStyle(.red)
                 } else if widgetKinds.isEmpty {
-                    Text("系统里还没有已添加的 Widget Studio 小组件。")
+                    Text("系统里还没有已添加的 Mini Widgets 小组件。")
                         .font(.footnote)
                 } else {
                     ForEach(widgetKinds, id: \.self) { kind in

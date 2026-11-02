@@ -61,7 +61,7 @@ struct StudioProbeView: View {
                 Text(todayShift)
                     .font(.system(size: 26, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
-                Text("v1.5 probe")
+                Text("probe · v1.9")
                     .font(.system(size: 9, weight: .medium))
                     .foregroundStyle(.white.opacity(0.6))
             }
