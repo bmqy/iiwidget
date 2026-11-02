@@ -26,6 +26,7 @@ struct StudioEntry: TimelineEntry {
         self.counterValue = settings.counterValue
         self.counterUnit = settings.counterUnit
         self.shiftConfig = shift
+        self.sharedAvailable = SharedStore.isAppGroupAvailable
     }
 }
 
